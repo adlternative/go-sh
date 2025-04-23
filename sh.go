@@ -34,6 +34,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/codegangsta/inject"
@@ -53,6 +54,7 @@ type Session struct {
 	Stderr  io.Writer
 	ShowCMD bool // enable for debug
 	timeout time.Duration
+	setPgid bool
 
 	// additional pipe options
 	PipeFail      bool // returns error of rightmost no-zero command
@@ -162,6 +164,10 @@ func (s *Session) SetTimeout(d time.Duration) *Session {
 	return s
 }
 
+func (s *Session) SetPgid() {
+	s.setPgid = true
+}
+
 func newEnviron(env map[string]string, inherit bool) []string { //map[string]string {
 	environ := make([]string, 0, len(env))
 	if inherit {
@@ -209,6 +215,10 @@ func (s *Session) appendCmd(cmd string, args []string, cwd Dir, env map[string]s
 		args = append(v[1:], args...)
 	}
 	c := exec.Command(cmd, args...)
+
+	if s.setPgid {
+		c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
 	c.Env = environ
 	c.Dir = string(cwd)
 	s.cmds = append(s.cmds, c)
