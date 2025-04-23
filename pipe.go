@@ -93,12 +93,16 @@ func (s *Session) Wait() error {
 	return lastErr
 }
 
-func (s *Session) Kill(sig os.Signal) {
+func (s *Session) Kill(sig os.Signal) error {
 	for _, cmd := range s.cmds {
 		if cmd.Process != nil {
-			cmd.Process.Signal(sig)
+			err := cmd.Process.Signal(sig)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (s *Session) WaitTimeout(timeout time.Duration) (err error) {
